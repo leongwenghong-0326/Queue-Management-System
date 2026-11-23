@@ -1,0 +1,27 @@
+# ============================================================
+# Smart Queue Management System (QMS) - Apache Configuration
+# ============================================================
+
+# Disable Directory Browsing
+Options -Indexes
+
+# Protect Sensitive Configuration, Database Files, and Logs
+<FilesMatch "(\.(sql|log|env|bak|ini)|database\.php|config\.php)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Prevent direct access to includes folder files
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^includes/ - [F,L]
+    RewriteRule ^tests/ - [F,L]
+</IfModule>
+
+# Set UTF-8 encoding
+AddDefaultCharset UTF-8

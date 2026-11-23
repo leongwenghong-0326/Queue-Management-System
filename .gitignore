@@ -1,0 +1,31 @@
+# Database & Secret Credentials
+config/database.php
+.env
+.env.*
+*.env
+!.env.example
+
+# XAMPP & Apache Logs
+*.log
+error_log
+logs/
+
+# Temporary & Bridge files
+auth/temp_*.php
+scripts/temp_*.php
+docs/screenshots/test.png
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Dependency directories
+vendor/
+node_modules/

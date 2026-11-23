@@ -1,7 +1,9 @@
 # Smart Queue Management System (QMS)
+
 Enterprise-grade queue calling and ticket management platform for service halls, clinics, and customer centers.
 
 ## Quick Start (XAMPP)
+
 1. Place this project inside `C:\xampp\htdocs\queue_management_system`
 2. Duplicate `config/database.example.php` to `config/database.php` and verify MySQL credentials
 3. Start **Apache** and **MySQL** services in the XAMPP Control Panel
@@ -20,6 +22,7 @@ Default credentials:
 - Staff Officer: `staff1` / `password123` (Counter 1) or `staff2` / `password123` (Counter 2)
 
 ## Features
+
 - **Self-Service Kiosk**: Touch-friendly customer ticket registration with dynamic wait time estimation and QR code generation
 - **Mobile Queue Tracker**: Real-time position tracking via secure 256-bit cryptographic tokens without requiring login
 - **Audio-Visual Public TV Display**: Fullscreen calling board with multi-tone audio chimes and native Web Speech API voice announcements
@@ -32,26 +35,27 @@ Default credentials:
 ## Screenshots
 
 | Customer Kiosk Registration | Digital Ticket & QR Code |
-|:---:|:---:|
+| :---: | :---: |
 | ![Customer Kiosk](docs/screenshots/02-kiosk.png) | ![Digital Ticket](docs/screenshots/03-ticket.png) |
 
 | Mobile Live Ticket Tracker | Public TV Calling Display |
-|:---:|:---:|
+| :---: | :---: |
 | ![Mobile Tracker](docs/screenshots/04-tracker.png) | ![TV Calling Screen](docs/screenshots/05-display.png) |
 
 | Staff Counter Console | Staff & Admin Authentication |
-|:---:|:---:|
+| :---: | :---: |
 | ![Staff Console](docs/screenshots/06-staff-dashboard.png) | ![Login Screen](docs/screenshots/01-login.png) |
 
 | Admin KPI Dashboard | Live Queue Supervisor |
-|:---:|:---:|
+| :---: | :---: |
 | ![Admin Dashboard](docs/screenshots/07-admin-dashboard.png) | ![Queue Monitor](docs/screenshots/08-admin-monitor.png) |
 
 | Analytics & CSV Reports |
-|:---:|
+| :---: |
 | ![Analytics Reports](docs/screenshots/09-admin-reports.png) |
 
 ## Folder Structure
+
 ```
 queue_management_system/
 ├── admin/                 Admin management views (counters, services, reports, users)
@@ -70,6 +74,7 @@ queue_management_system/
 ```
 
 ## 1. XAMPP Setup & Database Initialization
+
 1. Ensure your project directory is located at `C:\xampp\htdocs\queue_management_system`
 2. Start both **Apache** and **MySQL** via XAMPP Control Panel
 3. Copy the configuration template:
@@ -84,6 +89,7 @@ queue_management_system/
 5. If you prefer using phpMyAdmin, create a database named `queue_management_system` and import `database/queue_management_system.sql`.
 
 ## 2. Customer Kiosk & Live Tracking
+
 - Open `http://localhost/queue_management_system/customer/`
 - Select the desired service department (e.g., General Inquiries, Payments & Billing, Customer Support)
 - Enter the customer name and optional contact number
@@ -92,12 +98,14 @@ queue_management_system/
 - Customers can scan the QR code on mobile devices to track their live queue position without refreshing
 
 ## 3. Public Calling Display & Voice Synthesis
+
 - Launch `http://localhost/queue_management_system/display/` on hall TV monitors or secondary displays
 - Uses non-blocking polling (`api/display_data.php`) to fetch called numbers in real time
 - Plays a two-tone alert chime through Web Audio API
 - Uses browser SpeechSynthesis to announce tickets audibly (e.g., *"Queue Number A001, please proceed to Counter 1"*)
 
 ## 4. Staff Counter Console
+
 - Staff members sign in at `http://localhost/queue_management_system/auth/login.php`
 - Access the operational console at `http://localhost/queue_management_system/staff/dashboard.php`
 - Select your active counter (Counter 1 or Counter 2)
@@ -110,6 +118,7 @@ queue_management_system/
   - **No-Show**: Records unattended calls with reason logging
 
 ## 5. Admin Dashboard & Analytical Reports
+
 - Log in with administrator account (`admin` / `password123`)
 - **Dashboard**: High-level overview of daily tickets, average wait times, active counters, and hourly traffic distribution
 - **Counters & Services**: Configure department prefix codes, daily volume limits, and counter assignments
@@ -117,6 +126,7 @@ queue_management_system/
 - **Reports & Export**: Filter queue metrics by date range, counter, or service with instant RFC-compliant CSV export
 
 ## 6. Automated Testing
+
 Run the verification test suite directly from your terminal:
 ```bash
 php tests/run_tests.php
@@ -124,6 +134,7 @@ php tests/run_tests.php
 The test suite validates 25 scenarios including database schema integrity, sequence increments, atomic concurrency locks, invalid state transition rejections, cryptographic token security, and analytical calculations.
 
 ## System Lifecycle Flow
+
 ```
 [ Customer Kiosk ] ──> Ticket Issued: "Waiting"
                              │
@@ -140,6 +151,7 @@ The test suite validates 25 scenarios including database schema integrity, seque
 ```
 
 ## Security & Data Integrity
+
 - **Database Transactions**: All state modifications utilize InnoDB ACID transactions with row-level locks
 - **Token Cryptography**: Customer tracking URLs use 256-bit cryptographically secure random tokens with SHA-256 storage
 - **CSRF Defense**: All POST requests are protected by synchronized session CSRF tokens
@@ -148,6 +160,5 @@ The test suite validates 25 scenarios including database schema integrity, seque
 - **Privacy Shield**: Production credentials, logs, and sensitive configurations are guarded via `.gitignore`
 
 ## License
+
 This project is licensed under the [MIT License](LICENSE).
-#   Q u e u e - M a n a g e m e n t - S y s t e m  
- 

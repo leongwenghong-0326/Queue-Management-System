@@ -9,8 +9,10 @@ require_once __DIR__ . '/../config/config.php';
 if (!empty($_SESSION['user_id'])) {
     if ($_SESSION['role_name'] === 'Admin') {
         header('Location: ' . BASE_URL . '/admin/dashboard.php');
-    } else {
+    } elseif ($_SESSION['role_name'] === 'Staff') {
         header('Location: ' . BASE_URL . '/staff/dashboard.php');
+    } else {
+        header('Location: ' . BASE_URL . '/user/dashboard.php');
     }
     exit();
 }
@@ -58,8 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Redirect according to role
                 if ($user['role_name'] === 'Admin') {
                     header('Location: ' . BASE_URL . '/admin/dashboard.php');
-                } else {
+                } elseif ($user['role_name'] === 'Staff') {
                     header('Location: ' . BASE_URL . '/staff/dashboard.php');
+                } else {
+                    header('Location: ' . BASE_URL . '/user/dashboard.php');
                 }
                 exit();
             }
@@ -122,6 +126,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
                         <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
                     </button>
+
+                    <div class="text-center mt-3 pt-2 border-top">
+                        <span class="text-muted small">Are you a public citizen?</span>
+                        <a href="<?= BASE_URL ?>/auth/register.php" class="small fw-bold text-decoration-none ms-1">
+                            Register an Account
+                        </a>
+                    </div>
                 </form>
             </div>
             <div class="card-footer bg-light border-0 py-3 text-center">
@@ -140,12 +151,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span class="fw-semibold text-dark"><i class="bi bi-key-fill text-warning me-1"></i> Default Demo Credentials:</span>
                     <span class="badge bg-light text-secondary border" style="font-size: 0.7rem;">Click to Auto-Fill</span>
                 </div>
-                <div class="d-flex justify-content-between gap-2 mt-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm flex-fill text-start py-1 px-2" onclick="fillCredentials('admin', 'password123')">
-                        <i class="bi bi-shield-lock me-1"></i><span class="fw-semibold">Admin:</span> <code>admin</code> / <code>password123</code>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm flex-fill text-start py-1 px-2" onclick="fillCredentials('staff1', 'password123')">
-                        <i class="bi bi-person-badge me-1"></i><span class="fw-semibold">Staff:</span> <code>staff1</code> / <code>password123</code>
+                <div class="d-flex flex-column gap-1 mt-2">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm flex-fill text-start py-1 px-2" onclick="fillCredentials('admin', 'password123')">
+                            <i class="bi bi-shield-lock me-1"></i><span class="fw-semibold">Admin:</span> <code>admin</code>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm flex-fill text-start py-1 px-2" onclick="fillCredentials('staff1', 'password123')">
+                            <i class="bi bi-person-badge me-1"></i><span class="fw-semibold">Staff:</span> <code>staff1</code>
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-outline-info btn-sm text-start py-1 px-2" onclick="fillCredentials('citizen1', 'password123')">
+                        <i class="bi bi-person me-1"></i><span class="fw-semibold">Citizen:</span> <code>citizen1</code> / <code>password123</code>
                     </button>
                 </div>
             </div>

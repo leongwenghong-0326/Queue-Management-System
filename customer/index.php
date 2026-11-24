@@ -66,6 +66,18 @@ $bizName = get_setting('business_name', 'Smart City Service Center');
     </header>
 
     <div class="container py-5 flex-grow-1" style="max-width: 900px;">
+        <!-- Mode Switch Tabs -->
+        <div class="d-flex justify-content-center mb-4">
+            <div class="btn-group p-1 bg-white border rounded-pill shadow-sm" role="group">
+                <a href="<?= BASE_URL ?>/customer/index.php" class="btn btn-primary rounded-pill px-4 py-2 active">
+                    <i class="bi bi-ticket-perforated me-1"></i> Walk-in Ticket
+                </a>
+                <a href="<?= BASE_URL ?>/customer/checkin.php" class="btn btn-outline-primary rounded-pill px-4 py-2">
+                    <i class="bi bi-calendar-check me-1"></i> Appointment Check-in
+                </a>
+            </div>
+        </div>
+
         <div class="text-center mb-4">
             <h2 class="fw-bold text-dark mb-2">Welcome! Please Select a Service</h2>
             <p class="text-muted">Touch or click on your desired service below to obtain your queue ticket number.</p>

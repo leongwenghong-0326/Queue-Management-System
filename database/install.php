@@ -46,9 +46,9 @@ try {
 
     // Set known fresh bcrypt passwords for testing accounts
     $defaultPasswordHash = password_hash('password123', PASSWORD_BCRYPT);
-    $stmt = $pdo->prepare("UPDATE `users` SET `password` = :pwd WHERE `username` IN ('admin', 'staff1', 'staff2')");
+    $stmt = $pdo->prepare("UPDATE `users` SET `password` = :pwd WHERE `username` IN ('admin', 'staff1', 'staff2', 'citizen1')");
     $stmt->execute([':pwd' => $defaultPasswordHash]);
-    echo "Default user passwords updated successfully (admin: password123, staff1: password123, staff2: password123).\n";
+    echo "Default user passwords updated successfully (admin: password123, staff1: password123, staff2: password123, citizen1: password123).\n";
 
     // Verify created tables
     $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);

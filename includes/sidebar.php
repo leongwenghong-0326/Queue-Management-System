@@ -53,6 +53,16 @@ $role = $_SESSION['role_name'] ?? '';
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, '/appointments/') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/admin/appointments/index.php">
+                        <i class="bi bi-calendar-check-fill"></i> Appointments
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, '/applications/') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/admin/applications/index.php">
+                        <i class="bi bi-file-earmark-check-fill"></i> Applications Review
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?= strpos($currentUri, '/reports/') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/admin/reports/index.php">
                         <i class="bi bi-file-earmark-bar-graph-fill"></i> Reports & Analytics
                     </a>
@@ -60,6 +70,11 @@ $role = $_SESSION['role_name'] ?? '';
                 <li class="nav-item">
                     <a class="nav-link <?= strpos($currentUri, '/settings/') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/admin/settings/index.php">
                         <i class="bi bi-sliders"></i> System Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, 'system_reset.php') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/admin/system_reset.php">
+                        <i class="bi bi-arrow-counterclockwise"></i> System Reset
                     </a>
                 </li>
             </ul>
@@ -70,6 +85,36 @@ $role = $_SESSION['role_name'] ?? '';
                 <li class="nav-item">
                     <a class="nav-link <?= strpos($currentUri, 'dashboard.php') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/staff/dashboard.php">
                         <i class="bi bi-headset"></i> Counter Workspace
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, 'appointments.php') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/staff/appointments.php">
+                        <i class="bi bi-calendar-check-fill"></i> Appointments List
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, 'applications.php') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/staff/applications.php">
+                        <i class="bi bi-file-earmark-check-fill"></i> Applications Review
+                    </a>
+                </li>
+            </ul>
+
+        <?php elseif ($role === 'User'): ?>
+            <div class="nav-header">Citizen Services</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, 'dashboard.php') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/user/dashboard.php">
+                        <i class="bi bi-speedometer2"></i> My Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, 'appointments.php') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/user/appointments.php">
+                        <i class="bi bi-calendar-plus-fill"></i> Book Appointment
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos($currentUri, 'applications.php') !== false ? 'active' : '' ?>" href="<?= BASE_URL ?>/user/applications.php">
+                        <i class="bi bi-file-earmark-arrow-up-fill"></i> Online Applications
                     </a>
                 </li>
             </ul>

@@ -266,6 +266,55 @@ $todayTotal = (int)$pdo->query("SELECT COUNT(*) FROM `queues` WHERE `queue_date`
 assertTest("Reporting engine aggregates actual database records", $todayTotal >= 2, "Total today: {$todayTotal}");
 
 // -------------------------------------------------------------
+// Test Group 8: Online Appointments & Office Check-in
+// -------------------------------------------------------------
+echo "\n--- Group 8: Online Appointments & Office Check-in ---\n";
+
+$aptSlots = get_appointment_time_slots(1, $today);
+assertTest("Available appointment time slots returned correctly", count($aptSlots) >= 5 && isset($aptSlots[0]['remaining']));
+
+$newApt = create_appointment([
+    'user_id' => 4,
+    'service_id' => 1,
+    'applicant_name' => 'Automated Test Citizen',
+    'ic_number' => '990101-14-9999',
+    'phone' => '+60 12-999 8888',
+    'email' => 'testcitizen@qms.local',
+    'appointment_date' => $today,
+    'time_slot' => '10:30 - 11:30',
+    'notes' => 'Automated test suite appointment'
+]);
+assertTest("Appointment created successfully with reference", $newApt['success'] === true && !empty($newApt['appointment_reference']));
+
+$checkinRes = checkin_appointment($newApt['appointment_reference']);
+assertTest("Appointment checked in and converted to queue ticket", $checkinRes['success'] === true && !empty($checkinRes['queue_number']));
+
+$aptCheck = $pdo->query("SELECT * FROM `appointments` WHERE `id` = {$newApt['appointment_id']}")->fetch();
+assertTest("Appointment status updated to Checked In with queue link", $aptCheck && $aptCheck['status'] === 'Checked In' && !empty($aptCheck['queue_id']));
+
+// -------------------------------------------------------------
+// Test Group 9: Online Applications & Review Workflow
+// -------------------------------------------------------------
+echo "\n--- Group 9: Online Applications & Review Workflow ---\n";
+
+$newApp = create_application([
+    'user_id' => 4,
+    'service_id' => 2,
+    'applicant_name' => 'Automated Test Citizen',
+    'ic_number' => '990101-14-9999',
+    'phone' => '+60 12-999 8888',
+    'email' => 'testcitizen@qms.local',
+    'notes' => 'Automated test application'
+]);
+assertTest("Application submitted successfully with tracking reference", $newApp['success'] === true && !empty($newApp['application_reference']));
+
+$reviewRes = review_application($newApp['application_id'], 'Approved', 1, 'Documents verified by test suite');
+assertTest("Application review updated status to Approved", $reviewRes === true);
+
+$appCheck = $pdo->query("SELECT * FROM `applications` WHERE `id` = {$newApp['application_id']}")->fetch();
+assertTest("Application record reflects Approved status and reviewer comments", $appCheck && $appCheck['status'] === 'Approved' && $appCheck['reviewer_remarks'] === 'Documents verified by test suite');
+
+// -------------------------------------------------------------
 // Final Summary
 // -------------------------------------------------------------
 echo "\n============================================================\n";

@@ -5,6 +5,16 @@ config/database.php
 *.env
 !.env.example
 
+# Database Backups & Dumps
+*.sql.bak
+*.sql.gz
+*.dump
+database/backup_*.sql
+
+# Exported Analytics & Private Reports
+*.csv
+reports_export_*.csv
+
 # XAMPP & Apache Logs
 *.log
 error_log
@@ -14,6 +24,19 @@ logs/
 auth/temp_*.php
 scripts/temp_*.php
 docs/screenshots/test.png
+*.tmp
+*.bak
+*.swp
+
+# User Uploads & Privacy Protection (Citizen IDs, Passports, Attached Documents)
+uploads/*
+!uploads/.gitkeep
+!uploads/applications/.gitkeep
+
+# Sessions & Storage Cache
+sessions/
+storage/
+*.session
 
 # OS-specific files
 .DS_Store

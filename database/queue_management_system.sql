@@ -30,6 +30,9 @@ CREATE TABLE `users` (
     `email` VARCHAR(100) NOT NULL UNIQUE,
     `password` VARCHAR(255) NOT NULL,
     `role_id` INT NOT NULL,
+    `ic_number` VARCHAR(30) DEFAULT NULL,
+    `phone` VARCHAR(30) DEFAULT NULL,
+    `address` TEXT DEFAULT NULL,
     `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
     `last_login` DATETIME DEFAULT NULL,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -136,11 +139,13 @@ CREATE TABLE `queues` (
     `assigned_counter_id` INT DEFAULT NULL,
     `assigned_staff_id` INT DEFAULT NULL,
     `transfer_from_queue_id` INT DEFAULT NULL,
+    `appointment_id` INT DEFAULT NULL,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_queue_lookup` (`status`, `service_id`, `priority_id`, `registration_time`),
     INDEX `idx_token_hash` (`tracking_token_hash`),
     INDEX `idx_queue_date` (`queue_date`),
+    INDEX `idx_appointment` (`appointment_id`),
     UNIQUE KEY `unique_service_number_day` (`service_id`, `queue_date`, `queue_number`),
     FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE RESTRICT,
     FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE SET NULL,
@@ -257,6 +262,60 @@ CREATE TABLE `activity_logs` (
     FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 19. Appointments Table (Online Booking & Office Check-in)
+DROP TABLE IF EXISTS `appointments`;
+CREATE TABLE `appointments` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `appointment_reference` VARCHAR(30) NOT NULL UNIQUE,
+    `user_id` INT DEFAULT NULL,
+    `service_id` INT NOT NULL,
+    `applicant_name` VARCHAR(100) NOT NULL,
+    `ic_number` VARCHAR(30) NOT NULL,
+    `phone` VARCHAR(30) NOT NULL,
+    `email` VARCHAR(100) DEFAULT NULL,
+    `appointment_date` DATE NOT NULL,
+    `time_slot` VARCHAR(30) NOT NULL,
+    `status` ENUM('Booked', 'Checked In', 'Cancelled', 'Completed') NOT NULL DEFAULT 'Booked',
+    `checked_in_time` DATETIME DEFAULT NULL,
+    `queue_id` INT DEFAULT NULL,
+    `notes` TEXT DEFAULT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_apt_lookup` (`appointment_date`, `time_slot`, `status`),
+    INDEX `idx_apt_ic` (`ic_number`),
+    INDEX `idx_apt_ref` (`appointment_reference`),
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 20. Applications Table (Online Submission & Verification)
+DROP TABLE IF EXISTS `applications`;
+CREATE TABLE `applications` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `application_reference` VARCHAR(30) NOT NULL UNIQUE,
+    `user_id` INT DEFAULT NULL,
+    `service_id` INT NOT NULL,
+    `applicant_name` VARCHAR(100) NOT NULL,
+    `ic_number` VARCHAR(30) NOT NULL,
+    `phone` VARCHAR(30) NOT NULL,
+    `email` VARCHAR(100) DEFAULT NULL,
+    `gender` ENUM('Male', 'Female') DEFAULT 'Male',
+    `nationality` VARCHAR(50) DEFAULT 'Malaysian',
+    `document_path` VARCHAR(255) DEFAULT NULL,
+    `notes` TEXT DEFAULT NULL,
+    `status` ENUM('Pending', 'Approved', 'Rejected') NOT NULL DEFAULT 'Pending',
+    `reviewed_by` INT DEFAULT NULL,
+    `reviewed_at` DATETIME DEFAULT NULL,
+    `reviewer_remarks` TEXT DEFAULT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_app_status` (`status`),
+    INDEX `idx_app_ref` (`application_reference`),
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE RESTRICT,
+    FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -267,13 +326,15 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Roles
 INSERT INTO `roles` (`id`, `role_name`, `description`) VALUES
 (1, 'Admin', 'Full administrative access and system configuration'),
-(2, 'Staff', 'Counter operator access to manage and call queues');
+(2, 'Staff', 'Counter operator access to manage and call queues'),
+(3, 'User', 'Public citizen access for appointments and applications');
 
 -- Initial Users (Password is 'password123' hashed with BCRYPT)
-INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role_id`, `status`) VALUES
-(1, 'System Administrator', 'admin', 'admin@qms.local', '$2y$10$w.iyYzh8thttjnncIqASKOgJ480SJhM2BGGO/nYS.8pu.yf5ydtsa', 1, 'active'),
-(2, 'Alice Johnson', 'staff1', 'staff1@qms.local', '$2y$10$w.iyYzh8thttjnncIqASKOgJ480SJhM2BGGO/nYS.8pu.yf5ydtsa', 2, 'active'),
-(3, 'Bob Smith', 'staff2', 'staff2@qms.local', '$2y$10$w.iyYzh8thttjnncIqASKOgJ480SJhM2BGGO/nYS.8pu.yf5ydtsa', 2, 'active');
+INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role_id`, `ic_number`, `phone`, `address`, `status`) VALUES
+(1, 'System Administrator', 'admin', 'admin@qms.local', '$2y$10$w.iyYzh8thttjnncIqASKOgJ480SJhM2BGGO/nYS.8pu.yf5ydtsa', 1, '800101-14-1111', '+60 3-8888 1111', 'Administrative HQ', 'active'),
+(2, 'Alice Johnson', 'staff1', 'staff1@qms.local', '$2y$10$w.iyYzh8thttjnncIqASKOgJ480SJhM2BGGO/nYS.8pu.yf5ydtsa', 2, '880202-14-2222', '+60 12-222 3333', 'Counter Operations Dept', 'active'),
+(3, 'Bob Smith', 'staff2', 'staff2@qms.local', '$2y$10$w.iyYzh8thttjnncIqASKOgJ480SJhM2BGGO/nYS.8pu.yf5ydtsa', 2, '920303-14-3333', '+60 12-444 5555', 'Counter Operations Dept', 'active'),
+(4, 'John Citizen', 'citizen1', 'citizen@qms.local', '$2y$10$w.iyYzh8thttjnncIqASKOgJ480SJhM2BGGO/nYS.8pu.yf5ydtsa', 3, '950505-14-5555', '+60 12-888 9999', '123 Jalan Ampang, Kuala Lumpur', 'active');
 
 -- Services
 INSERT INTO `services` (`id`, `service_code`, `service_name`, `description`, `default_service_duration`, `maximum_queue_capacity`, `status`) VALUES

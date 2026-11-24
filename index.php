@@ -35,15 +35,26 @@ $activeCountersCount = (int)$pdo->query("SELECT COUNT(*) FROM `counters` WHERE `
             </a>
             <div class="d-flex align-items-center gap-2">
                 <?php if (!empty($_SESSION['user_id'])): ?>
-                    <a href="<?= $_SESSION['role_name'] === 'Admin' ? BASE_URL . '/admin/dashboard.php' : BASE_URL . '/staff/dashboard.php' ?>" class="btn btn-outline-light btn-sm">
+                    <?php 
+                        $workspaceUrl = BASE_URL . '/user/dashboard.php';
+                        if ($_SESSION['role_name'] === 'Admin') {
+                            $workspaceUrl = BASE_URL . '/admin/dashboard.php';
+                        } elseif ($_SESSION['role_name'] === 'Staff') {
+                            $workspaceUrl = BASE_URL . '/staff/dashboard.php';
+                        }
+                    ?>
+                    <a href="<?= $workspaceUrl ?>" class="btn btn-outline-light btn-sm">
                         <i class="bi bi-speedometer2 me-1"></i> My Workspace (<?= e($_SESSION['role_name']) ?>)
                     </a>
                     <a href="<?= BASE_URL ?>/auth/logout.php" class="btn btn-danger btn-sm">
                         <i class="bi bi-box-arrow-right"></i>
                     </a>
                 <?php else: ?>
+                    <a href="<?= BASE_URL ?>/auth/register.php" class="btn btn-outline-light btn-sm px-3">
+                        <i class="bi bi-person-plus me-1"></i> Register
+                    </a>
                     <a href="<?= BASE_URL ?>/auth/login.php" class="btn btn-primary btn-sm px-3">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Staff / Admin Login
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Login Portal
                     </a>
                 <?php endif; ?>
             </div>
@@ -162,6 +173,47 @@ $activeCountersCount = (int)$pdo->query("SELECT COUNT(*) FROM `counters` WHERE `
                         </p>
                         <a href="<?= BASE_URL ?>/admin/dashboard.php" class="btn btn-dark fw-semibold mt-3 py-2">
                             <i class="bi bi-gear-wide-connected me-1"></i> Admin Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Citizen Online Portal -->
+            <div class="col-md-6 col-lg-6">
+                <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover text-center p-3">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-inline-flex p-3 bg-info bg-opacity-10 text-info rounded-circle mx-auto mb-3">
+                            <i class="bi bi-calendar2-check-fill fs-1"></i>
+                        </div>
+                        <h4 class="card-title fw-bold text-dark">Citizen Online Services</h4>
+                        <p class="card-text text-muted small flex-grow-1">
+                            Book appointments online, choose date and time slots, submit document applications (e.g. passport & visa), and track processing progress.
+                        </p>
+                        <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap">
+                            <a href="<?= BASE_URL ?>/user/appointments.php" class="btn btn-info fw-semibold text-white py-2 px-3 text-nowrap">
+                                <i class="bi bi-calendar-plus me-1"></i> Book Appointment
+                            </a>
+                            <a href="<?= BASE_URL ?>/user/applications.php" class="btn btn-outline-info fw-semibold py-2 px-3 text-nowrap">
+                                <i class="bi bi-file-earmark-arrow-up me-1"></i> Apply Online
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Office Check-in Kiosk -->
+            <div class="col-md-6 col-lg-6">
+                <div class="card h-100 shadow-sm border-0 rounded-4 transition-hover text-center p-3">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-inline-flex p-3 bg-secondary bg-opacity-10 text-secondary rounded-circle mx-auto mb-3">
+                            <i class="bi bi-qr-code-scan fs-1"></i>
+                        </div>
+                        <h4 class="card-title fw-bold text-dark">Office Check-in</h4>
+                        <p class="card-text text-muted small flex-grow-1">
+                            Arrived at the service hall with an existing appointment? Verify your reference or IC/Passport to convert it directly into a live queue ticket.
+                        </p>
+                        <a href="<?= BASE_URL ?>/customer/checkin.php" class="btn btn-secondary fw-semibold mt-3 py-2">
+                            <i class="bi bi-check2-circle me-1"></i> Check-in Appointment
                         </a>
                     </div>
                 </div>

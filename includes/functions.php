@@ -433,3 +433,264 @@ function json_response(array $data, int $statusCode = 200): void {
     echo json_encode($data);
     exit();
 }
+
+/**
+ * Standard Available Appointment Time Slots & Capacity Calculator
+ */
+function get_appointment_time_slots(int $serviceId, string $date): array {
+    $pdo = Database::getConnection();
+    
+    // Defined standard operating time slots
+    $slots = [
+        '08:30 - 09:30',
+        '09:30 - 10:30',
+        '10:30 - 11:30',
+        '11:30 - 12:30',
+        '14:00 - 15:00',
+        '15:00 - 16:00',
+        '16:00 - 17:00'
+    ];
+
+    $slotCapacity = 10; // Max appointments per slot per service
+
+    $stmt = $pdo->prepare("SELECT time_slot, COUNT(*) as booked 
+                           FROM `appointments` 
+                           WHERE `service_id` = :sid 
+                             AND `appointment_date` = :adate 
+                             AND `status` != 'Cancelled' 
+                           GROUP BY `time_slot`");
+    $stmt->execute([':sid' => $serviceId, ':adate' => $date]);
+    $bookedMap = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+    $result = [];
+    foreach ($slots as $slot) {
+        $booked = (int)($bookedMap[$slot] ?? 0);
+        $remaining = max(0, $slotCapacity - $booked);
+        $result[] = [
+            'slot' => $slot,
+            'booked' => $booked,
+            'capacity' => $slotCapacity,
+            'remaining' => $remaining,
+            'is_available' => $remaining > 0
+        ];
+    }
+    return $result;
+}
+
+/**
+ * Create an Online Appointment
+ */
+function create_appointment(array $data): array {
+    $pdo = Database::getConnection();
+
+    $ref = 'APT-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(2)), 0, 4));
+    
+    $stmt = $pdo->prepare("INSERT INTO `appointments` 
+        (`appointment_reference`, `user_id`, `service_id`, `applicant_name`, `ic_number`, `phone`, `email`, `appointment_date`, `time_slot`, `notes`, `status`) 
+        VALUES 
+        (:ref, :uid, :sid, :name, :ic, :phone, :email, :adate, :slot, :notes, 'Booked')");
+    
+    $stmt->execute([
+        ':ref' => $ref,
+        ':uid' => !empty($data['user_id']) ? (int)$data['user_id'] : null,
+        ':sid' => (int)$data['service_id'],
+        ':name' => trim($data['applicant_name']),
+        ':ic' => trim($data['ic_number']),
+        ':phone' => trim($data['phone']),
+        ':email' => !empty($data['email']) ? trim($data['email']) : null,
+        ':adate' => $data['appointment_date'],
+        ':slot' => $data['time_slot'],
+        ':notes' => !empty($data['notes']) ? trim($data['notes']) : null
+    ]);
+
+    $appointmentId = (int)$pdo->lastInsertId();
+    log_activity($data['user_id'] ?? null, 'APPOINTMENT_CREATED', "Appointment {$ref} booked for {$data['applicant_name']}");
+
+    return [
+        'success' => true,
+        'appointment_id' => $appointmentId,
+        'appointment_reference' => $ref
+    ];
+}
+
+/**
+ * Atomically Generate a Queue Ticket
+ */
+function generate_queue_ticket(int $serviceId, int $priorityId = 1, string $customerName = 'Walk-in Customer', ?string $phone = null, ?int $appointmentId = null): array {
+    $availability = check_queue_availability($serviceId);
+    if (!$availability['available']) {
+        return ['success' => false, 'message' => $availability['message']];
+    }
+
+    $service = $availability['service'];
+    $serviceCode = $service['service_code'];
+    $today = date('Y-m-d');
+    $pdo = Database::getConnection();
+
+    try {
+        $pdo->beginTransaction();
+
+        $seqStmt = $pdo->prepare("INSERT INTO `queue_sequences` (`service_id`, `queue_date`, `last_number`, `updated_at`) 
+                                 VALUES (:sid, :today, 1, NOW()) 
+                                 ON DUPLICATE KEY UPDATE `last_number` = `last_number` + 1, `updated_at` = NOW()");
+        $seqStmt->execute([':sid' => $serviceId, ':today' => $today]);
+
+        $fetchSeqStmt = $pdo->prepare("SELECT `last_number` FROM `queue_sequences` WHERE `service_id` = :sid AND `queue_date` = :today FOR UPDATE");
+        $fetchSeqStmt->execute([':sid' => $serviceId, ':today' => $today]);
+        $nextSeqNumber = (int)$fetchSeqStmt->fetchColumn();
+
+        $queueNumber = sprintf("%s%03d", $serviceCode, $nextSeqNumber);
+
+        $customerId = null;
+        $custStmt = $pdo->prepare("INSERT INTO `customers` (`customer_name`, `phone`, `created_at`) VALUES (:cname, :phone, NOW())");
+        $custStmt->execute([
+            ':cname' => $customerName,
+            ':phone' => !empty($phone) ? $phone : null
+        ]);
+        $customerId = (int)$pdo->lastInsertId();
+
+        $tokenData = generate_tracking_token();
+        $rawToken = $tokenData['raw_token'];
+        $tokenHash = $tokenData['token_hash'];
+
+        $queueStmt = $pdo->prepare("INSERT INTO `queues` 
+            (`queue_number`, `service_id`, `customer_id`, `tracking_token_hash`, `priority_id`, `status`, `queue_date`, `registration_time`, `appointment_id`, `created_at`) 
+            VALUES 
+            (:qnum, :sid, :cid, :thash, :pid, 'Waiting', :today, NOW(), :aid, NOW())");
+        
+        $queueStmt->execute([
+            ':qnum' => $queueNumber,
+            ':sid' => $serviceId,
+            ':cid' => $customerId,
+            ':thash' => $tokenHash,
+            ':pid' => $priorityId,
+            ':today' => $today,
+            ':aid' => $appointmentId
+        ]);
+        $queueId = (int)$pdo->lastInsertId();
+
+        record_queue_status_transition($pdo, $queueId, 'Initiated', 'Waiting', null, 'System ticket generation');
+
+        $pdo->commit();
+
+        return [
+            'success' => true,
+            'queue_id' => $queueId,
+            'queue_number' => $queueNumber,
+            'tracking_token' => $rawToken,
+            'service_name' => $service['service_name']
+        ];
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+/**
+ * Check-in an Appointment and Convert to Queue Ticket
+ */
+function checkin_appointment(string $searchKey): array {
+    $pdo = Database::getConnection();
+    $today = date('Y-m-d');
+    $searchKey = trim($searchKey);
+
+    $stmt = $pdo->prepare("SELECT a.*, s.service_name, s.service_code 
+                           FROM `appointments` a 
+                           JOIN `services` s ON a.service_id = s.id 
+                           WHERE (a.appointment_reference = :k1 OR a.ic_number = :k2) 
+                             AND a.appointment_date = :today 
+                             AND a.status = 'Booked' 
+                           ORDER BY a.id ASC LIMIT 1");
+    $stmt->execute([':k1' => $searchKey, ':k2' => $searchKey, ':today' => $today]);
+    $appointment = $stmt->fetch();
+
+    if (!$appointment) {
+        return [
+            'success' => false,
+            'message' => 'No active booked appointment found for today with that Reference Number or IC/Passport.'
+        ];
+    }
+
+    // Generate normal queue ticket
+    $ticketResult = generate_queue_ticket($appointment['service_id'], 1, $appointment['applicant_name'], $appointment['phone']);
+    if (!$ticketResult['success']) {
+        return $ticketResult;
+    }
+
+    $queueId = $ticketResult['queue_id'];
+
+    // Update appointment record
+    $upStmt = $pdo->prepare("UPDATE `appointments` 
+                             SET `status` = 'Checked In', `checked_in_time` = NOW(), `queue_id` = :qid 
+                             WHERE `id` = :aid");
+    $upStmt->execute([':qid' => $queueId, ':aid' => $appointment['id']]);
+
+    // Update queue record link
+    $upQStmt = $pdo->prepare("UPDATE `queues` SET `appointment_id` = :aid WHERE `id` = :qid");
+    $upQStmt->execute([':aid' => $appointment['id'], ':qid' => $queueId]);
+
+    log_activity($appointment['user_id'], 'APPOINTMENT_CHECKIN', "Appointment {$appointment['appointment_reference']} checked in as Queue {$ticketResult['queue_number']}");
+
+    $ticketResult['appointment_reference'] = $appointment['appointment_reference'];
+    return $ticketResult;
+}
+
+/**
+ * Submit an Online Application
+ */
+function create_application(array $data): array {
+    $pdo = Database::getConnection();
+
+    $ref = 'APP-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(2)), 0, 4));
+
+    $stmt = $pdo->prepare("INSERT INTO `applications` 
+        (`application_reference`, `user_id`, `service_id`, `applicant_name`, `ic_number`, `phone`, `email`, `gender`, `nationality`, `document_path`, `notes`, `status`) 
+        VALUES 
+        (:ref, :uid, :sid, :name, :ic, :phone, :email, :gender, :nationality, :doc, :notes, 'Pending')");
+
+    $stmt->execute([
+        ':ref' => $ref,
+        ':uid' => !empty($data['user_id']) ? (int)$data['user_id'] : null,
+        ':sid' => (int)$data['service_id'],
+        ':name' => trim($data['applicant_name']),
+        ':ic' => trim($data['ic_number']),
+        ':phone' => trim($data['phone']),
+        ':email' => !empty($data['email']) ? trim($data['email']) : null,
+        ':gender' => $data['gender'] ?? 'Male',
+        ':nationality' => $data['nationality'] ?? 'Malaysian',
+        ':doc' => $data['document_path'] ?? null,
+        ':notes' => !empty($data['notes']) ? trim($data['notes']) : null
+    ]);
+
+    $appId = (int)$pdo->lastInsertId();
+    log_activity($data['user_id'] ?? null, 'APPLICATION_SUBMITTED', "Application {$ref} submitted by {$data['applicant_name']}");
+
+    return [
+        'success' => true,
+        'application_id' => $appId,
+        'application_reference' => $ref
+    ];
+}
+
+/**
+ * Review Application (Approve / Reject)
+ */
+function review_application(int $appId, string $status, int $reviewerId, ?string $remarks = null): bool {
+    $pdo = Database::getConnection();
+    $status = in_array($status, ['Approved', 'Rejected']) ? $status : 'Pending';
+
+    $stmt = $pdo->prepare("UPDATE `applications` 
+                           SET `status` = :st, `reviewed_by` = :rid, `reviewed_at` = NOW(), `reviewer_remarks` = :rem 
+                           WHERE `id` = :id");
+    $stmt->execute([
+        ':st' => $status,
+        ':rid' => $reviewerId,
+        ':rem' => $remarks,
+        ':id' => $appId
+    ]);
+
+    log_activity($reviewerId, 'APPLICATION_REVIEWED', "Application #{$appId} marked as {$status}");
+    return true;
+}
